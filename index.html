@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -127,6 +128,12 @@ function todayKey(){
   var d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+function normalizeDate(d){
+  if(!d) return '';
+  if(typeof d === 'string' && d.length===10) return d;
+  var dt=new Date(d);
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()+1).padStart(2,'0');
+}
 function workDaysSince(from){
   return Math.max(1,Math.ceil((new Date()-from)/(1000*60*60*24)*6/7));
 }
@@ -137,7 +144,10 @@ function workDaysUntil(to){
 function loadEntries(){
   var script=document.createElement('script');
   window._cb=function(data){
-    entries=data.filter(function(r){return r.date&&r.prov&&r.date!=='date';});
+    entries=data.filter(function(r){return r.date&&r.prov&&r.date!=='date'&&r.prov!=='B'&&!isNaN(Number(r.locali));}).map(function(r){
+    r.date=normalizeDate(r.date);
+    return r;
+  });
     render();
   };
   script.src=API+'?callback=_cb&t='+Date.now();
@@ -237,7 +247,8 @@ function renderHistory(){
     var r=bd[d];
     var badges=r.provs.map(function(p){return '<span class="badge badge-'+p.toLowerCase()+'">'+p+'</span>';}).join(' ');
     var parts=d.split('-');
-    return '<div class="history-item"><div class="history-date">'+parseInt(parts[2])+'/'+parseInt(parts[1])+'/'+parts[0]+' '+badges+'</div>'+
+    var dd=parseInt(parts[2]);var mm=parseInt(parts[1]);var yy=parts[0];
+    return '<div class="history-item"><div class="history-date">'+dd+'/'+mm+'/'+yy+' '+badges+'</div>'+
       '<div class="history-row"><span>Locali aderiti</span><span>'+r.locali+'</span></div>'+
       '<div class="history-row"><span>Contratti chiusi</span><span>'+r.contratti+'</span></div>'+
       '<div class="history-row"><span>Spese</span><span>€'+r.spese.toFixed(2)+'</span></div>'+

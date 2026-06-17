@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report Vendite</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh}
+.app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh}
+.header{padding:1rem 1rem 0}
+.header .date{font-size:11px;color:#888;margin-bottom:4px}
+.header h1{font-size:17px;font-weight:500;margin-bottom:12px}
+.tab-bar{display:flex;border-bottom:1px solid #e5e5e5;margin-bottom:1rem}
+.tab{flex:1;padding:10px 2px;font-size:12px;background:none;border:none;border-bottom:2px solid transparent;color:#888;cursor:pointer}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:500}
+.screen{display:none;padding:0 1rem 2rem}
+.screen.active{display:block}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.metric{background:#f5f5f5;border-radius:8px;padding:12px}
+.metric label{font-size:11px;color:#888;display:block;margin-bottom:4px}
+.metric .val{font-size:22px;font-weight:500}
+.metric .sub{font-size:11px;color:#888;margin-top:2px}
+.section-title{font-size:12px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:1rem 0 8px}
+.prog-wrap{margin-bottom:10px}
+.prog-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.prog-label span:last-child{color:#888;font-size:12px}
+.prog-bar{height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width .3s}
+.today-card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:1rem}
+.today-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px;border-bottom:1px solid #f0f0f0}
+.today-row:last-child{border:none}
+.today-row span:first-child{color:#888}
+.form-field{margin-bottom:12px}
+.form-field label{display:block;font-size:13px;color:#666;margin-bottom:4px}
+.form-field input,.form-field select,.form-field textarea{width:100%;padding:10px 12px;font-size:15px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1a1a1a;font-family:inherit;outline:none}
+.form-field textarea{resize:vertical;min-height:72px}
+.save-btn{width:100%;padding:13px;font-size:15px;font-weight:500;background:#1a1a1a;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:4px}
+.save-btn:disabled{opacity:.5}
+.history-item{border:1px solid #e5e5e5;border-radius:8px;padding:12px;margin-bottom:8px}
+.history-date{font-size:12px;color:#888;margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.history-row{display:flex;justify-content:space-between;font-size:13px;padding:2px 0}
+.history-row span:first-child{color:#888}
+.history-note{font-size:12px;color:#888;margin-top:6px;border-top:1px solid #f0f0f0;padding-top:6px;font-style:italic}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+.badge-bs{background:#E6F1FB;color:#0C447C}
+.badge-vr{background:#EAF3DE;color:#27500A}
+.badge-mn{background:#FAEEDA;color:#633806}
+.empty{text-align:center;padding:2rem;color:#888;font-size:14px;line-height:1.6}
+.pace-card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:1rem;margin-bottom:1rem}
+.pace-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid #f0f0f0}
+.pace-row:last-child{border:none}
+.pace-row span:first-child{color:#888}
+.pace-val{font-weight:500}
+.pace-val.ok{color:#27500A}
+.pace-val.warn{color:#633806}
+.pace-val.danger{color:#791F1F}
+.banner{padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:1rem;line-height:1.4}
+.banner-info{background:#E6F1FB;color:#0C447C}
+.banner-ok{background:#EAF3DE;color:#27500A}
+.banner-warn{background:#FAEEDA;color:#633806}
+.loading{text-align:center;padding:3rem;color:#888;font-size:14px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="date" id="dateDisplay"></div>
+    <h1>Report vendite</h1>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="switchTab('update')">+ Aggiorna</button>
+    <button class="tab" onclick="switchTab('pace')">Ritmo</button>
+    <button class="tab" onclick="switchTab('history')">Storico</button>
+  </div>
+
+  <div id="tab-dashboard" class="screen active">
+    <div id="todayBanner" style="display:none" class="banner banner-info"></div>
+    <div class="metric-grid">
+      <div class="metric"><label>Locali totali</label><div class="val" id="totalLocali">—</div><div class="sub">obiettivo: 100</div></div>
+      <div class="metric"><label>Contratti chiusi</label><div class="val" id="totalContratti">—</div><div class="sub" id="daysLeft"></div></div>
+      <div class="metric"><label>Spese totali</label><div class="val" id="totalSpese">—</div><div class="sub">rimborso spese</div></div>
+      <div class="metric"><label>Media/giorno</label><div class="val" id="mediaGiorno">—</div><div class="sub">locali per giornata</div></div>
+    </div>
+    <div class="section-title">Obiettivo 100 locali — entro 31 ott 2026</div>
+    <div class="prog-wrap"><div class="prog-label"><span>Totale</span><span id="progTot">0 / 100</span></div><div class="prog-bar"><div class="prog-fill" id="barTot" style="width:0%;background:#3266ad"></div></div></div>
+    <div class="prog-wrap"><div class="prog-label"><span>Brescia <span class="badge badge-bs">BS</span></span><span id="progBs">0 / 40</span></div><div class="prog-bar"><div class="prog-fill" id="barBs" style="width:0%;background:#378ADD"></div></div></div>
+    <div class="prog-wrap"><div class="prog-label"><span>Verona <span class="badge badge-vr">VR</span></span><span id="progVr">0 / 30</span></div><div class="prog-bar"><div class="prog-fill" id="barVr" style="width:0%;background:#639922"></div></div></div>
+    <div class="prog-wrap"><div class="prog-label"><span>Mantova <span class="badge badge-mn">MN</span></span><span id="progMn">0 / 30</span></div><div class="prog-bar"><div class="prog-fill" id="barMn" style="width:0%;background:#BA7517"></div></div></div>
+    <div class="section-title">Aggiornamento di oggi</div>
+    <div class="today-card" id="todayCard"><div class="loading">Caricamento...</div></div>
+  </div>
+
+  <div id="tab-update" class="screen">
+    <div class="section-title">Inserisci i dati di oggi</div>
+    <div id="alreadyToday" style="display:none" class="banner banner-info">Hai già inserito oggi — stai aggiungendo un nuovo record.</div>
+    <div class="form-field"><label>Provincia</label><select id="fProv"><option value="BS">Brescia (BS)</option><option value="VR">Verona (VR)</option><option value="MN">Mantova (MN)</option></select></div>
+    <div class="form-field"><label>Locali che hanno aderito oggi</label><input type="number" id="fLocali" placeholder="es. 3" min="0"></div>
+    <div class="form-field"><label>Contratti chiusi oggi</label><input type="number" id="fContratti" placeholder="es. 2" min="0"></div>
+    <div class="form-field"><label>Spese di oggi (€)</label><input type="number" id="fSpese" placeholder="es. 45.50" min="0" step="0.01"></div>
+    <div class="form-field"><label>Note del giorno (opzionale)</label><textarea id="fNote" placeholder="Es. zona industriale, ricontattare Pizzeria Roma..."></textarea></div>
+    <button class="save-btn" id="saveBtn" onclick="saveEntry()">Salva aggiornamento</button>
+  </div>
+
+  <div id="tab-pace" class="screen">
+    <div class="section-title">Ritmo necessario</div>
+    <div id="paceStatus" class="banner banner-info">Caricamento...</div>
+    <div class="pace-card" id="paceCard"></div>
+    <div class="section-title">Per provincia</div>
+    <div class="pace-card" id="paceProvCard"></div>
+  </div>
+
+  <div id="tab-history" class="screen">
+    <div class="section-title">Storico giornaliero</div>
+    <div id="historyList"><div class="loading">Caricamento...</div></div>
+  </div>
+</div>
+
+<script>
+var API = 'https://script.google.com/macros/s/AKfycbyKK8Ctmg6VlPv5Kkni1r-3y7XtUsPT3otTDoEt8cViqnIH-wmiWJFO1JXGgm3JkvzT/exec';
+var END = new Date('2026-10-31');
+var START_WORK = new Date('2026-05-25');
+var entries = [];
+
+function todayKey(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function workDaysSince(from){
+  return Math.max(1,Math.ceil((new Date()-from)/(1000*60*60*24)*6/7));
+}
+function workDaysUntil(to){
+  return Math.max(0,Math.round((to-new Date())/(1000*60*60*24)*6/7));
+}
+
+function loadEntries(){
+  var script=document.createElement('script');
+  window._cb=function(data){
+    entries=data.filter(function(r){return r.date&&r.prov&&r.date!=='date';});
+    render();
+  };
+  script.src=API+'?callback=_cb&t='+Date.now();
+  document.head.appendChild(script);
+}
+
+function init(){
+  var d=new Date();
+  document.getElementById('dateDisplay').textContent=d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var days=Math.max(0,Math.ceil((END-d)/(1000*60*60*24)));
+  document.getElementById('daysLeft').textContent=days+' giorni al termine';
+  loadEntries();
+}
+
+function render(){
+  var totL=entries.reduce(function(s,e){return s+Number(e.locali);},0);
+  var totC=entries.reduce(function(s,e){return s+Number(e.contratti);},0);
+  var totS=entries.reduce(function(s,e){return s+Number(e.spese);},0);
+  var wDays=workDaysSince(START_WORK);
+  document.getElementById('totalLocali').textContent=totL;
+  document.getElementById('totalContratti').textContent=totC;
+  document.getElementById('totalSpese').textContent='€'+totS.toFixed(2);
+  document.getElementById('mediaGiorno').textContent=(totL/wDays).toFixed(1);
+
+  var bp={BS:0,VR:0,MN:0};
+  entries.forEach(function(e){if(bp[e.prov]!==undefined)bp[e.prov]+=Number(e.locali);});
+
+  function bar(bi,ti,v,m){
+    document.getElementById(bi).style.width=Math.min(100,Math.round(v/m*100))+'%';
+    document.getElementById(ti).textContent=v+' / '+m;
+  }
+  bar('barTot','progTot',totL,100);
+  bar('barBs','progBs',bp.BS,40);
+  bar('barVr','progVr',bp.VR,30);
+  bar('barMn','progMn',bp.MN,30);
+
+  var tk=todayKey();
+  var te=entries.filter(function(e){return e.date===tk;});
+  var tc=document.getElementById('todayCard');
+  if(te.length===0){
+    tc.innerHTML='<div class="empty">Nessun aggiornamento oggi.<br>Vai su "+ Aggiorna"</div>';
+  } else {
+    document.getElementById('alreadyToday').style.display='block';
+    var b=document.getElementById('todayBanner');
+    b.style.display='block';
+    b.textContent='Ultimo aggiornamento oggi: +'+te[te.length-1].locali+' locali ('+te[te.length-1].prov+')';
+    var tL=te.reduce(function(s,e){return s+Number(e.locali);},0);
+    var tC=te.reduce(function(s,e){return s+Number(e.contratti);},0);
+    var tS=te.reduce(function(s,e){return s+Number(e.spese);},0);
+    var provs=[...new Set(te.map(function(e){return e.prov;}))].join(', ');
+    var notes=te.filter(function(e){return e.note&&e.note.trim();}).map(function(e){return e.note.trim();}).join(' | ');
+    tc.innerHTML='<div class="today-row"><span>Province</span><span>'+provs+'</span></div><div class="today-row"><span>Locali aderiti</span><span>'+tL+'</span></div><div class="today-row"><span>Contratti chiusi</span><span>'+tC+'</span></div><div class="today-row"><span>Spese</span><span>€'+tS.toFixed(2)+'</span></div>'+(notes?'<div class="history-note">'+notes+'</div>':'');
+  }
+  renderPace(bp,totL,wDays);
+  renderHistory();
+}
+
+function renderPace(bp,totL,wDaysElapsed){
+  var rem=workDaysUntil(END);
+  var needed=Math.max(0,100-totL);
+  var npd=rem>0?needed/rem:0;
+  var rate=totL/wDaysElapsed;
+  var ok=rate>=npd;
+  var ps=document.getElementById('paceStatus');
+  ps.className='banner '+(ok?'banner-ok':'banner-warn');
+  ps.textContent=ok?'Sei in linea con l\'obiettivo!':'Devi accelerare per raggiungere i 100 locali.';
+  var rc=ok?'ok':(rate>0?'warn':'danger');
+  document.getElementById('paceCard').innerHTML=
+    '<div class="pace-row"><span>Giorni lavorativi trascorsi</span><span class="pace-val">'+wDaysElapsed+'</span></div>'+
+    '<div class="pace-row"><span>Giorni lavorativi rimasti</span><span class="pace-val">'+rem+'</span></div>'+
+    '<div class="pace-row"><span>Locali ancora da fare</span><span class="pace-val">'+needed+'</span></div>'+
+    '<div class="pace-row"><span>Necessario al giorno</span><span class="pace-val '+(ok?'ok':'warn')+'">'+npd.toFixed(1)+'</span></div>'+
+    '<div class="pace-row"><span>Tuo ritmo attuale</span><span class="pace-val '+rc+'">'+rate.toFixed(1)+' / giorno</span></div>'+
+    '<div class="pace-row"><span>Proiezione finale</span><span class="pace-val '+(ok?'ok':'warn')+'">'+Math.round(rate*rem+totL)+' locali</span></div>';
+  document.getElementById('paceProvCard').innerHTML=
+    [{k:'BS',l:'Brescia',t:40,c:'badge-bs'},{k:'VR',l:'Verona',t:30,c:'badge-vr'},{k:'MN',l:'Mantova',t:30,c:'badge-mn'}]
+    .map(function(p){
+      var d=bp[p.k]||0;
+      return '<div class="pace-row"><span><span class="badge '+p.c+'">'+p.k+'</span> '+p.l+'</span><span class="pace-val">'+d+'/'+p.t+' <span style="font-size:11px;font-weight:400;color:#888">mancano '+Math.max(0,p.t-d)+'</span></span></div>';
+    }).join('');
+}
+
+function renderHistory(){
+  var hl=document.getElementById('historyList');
+  var bd={};
+  entries.forEach(function(e){
+    if(!bd[e.date])bd[e.date]={locali:0,contratti:0,spese:0,provs:[],notes:[]};
+    bd[e.date].locali+=Number(e.locali);
+    bd[e.date].contratti+=Number(e.contratti);
+    bd[e.date].spese+=Number(e.spese);
+    if(bd[e.date].provs.indexOf(e.prov)===-1)bd[e.date].provs.push(e.prov);
+    if(e.note&&e.note.trim())bd[e.date].notes.push(e.note.trim());
+  });
+  var dates=Object.keys(bd).sort().reverse();
+  if(!dates.length){hl.innerHTML='<div class="empty">Nessun dato ancora.</div>';return;}
+  hl.innerHTML=dates.map(function(d){
+    var r=bd[d];
+    var badges=r.provs.map(function(p){return '<span class="badge badge-'+p.toLowerCase()+'">'+p+'</span>';}).join(' ');
+    var parts=d.split('-');
+    return '<div class="history-item"><div class="history-date">'+parseInt(parts[2])+'/'+parseInt(parts[1])+'/'+parts[0]+' '+badges+'</div>'+
+      '<div class="history-row"><span>Locali aderiti</span><span>'+r.locali+'</span></div>'+
+      '<div class="history-row"><span>Contratti chiusi</span><span>'+r.contratti+'</span></div>'+
+      '<div class="history-row"><span>Spese</span><span>€'+r.spese.toFixed(2)+'</span></div>'+
+      (r.notes.length?'<div class="history-note">'+r.notes.join(' | ')+'</div>':'')+
+      '</div>';
+  }).join('');
+}
+
+function saveEntry(){
+  var btn=document.getElementById('saveBtn');
+  btn.disabled=true;btn.textContent='Salvataggio...';
+  var entry={
+    date:todayKey(),
+    prov:document.getElementById('fProv').value,
+    locali:parseFloat(document.getElementById('fLocali').value)||0,
+    contratti:parseFloat(document.getElementById('fContratti').value)||0,
+    spese:parseFloat(document.getElementById('fSpese').value)||0,
+    note:document.getElementById('fNote').value||''
+  };
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',API,true);
+  xhr.setRequestHeader('Content-Type','text/plain');
+  xhr.onload=function(){
+    ['fLocali','fContratti','fSpese','fNote'].forEach(function(id){document.getElementById(id).value='';});
+    setTimeout(function(){loadEntries();switchTab('dashboard');},1500);
+    btn.disabled=false;btn.textContent='Salva aggiornamento';
+  };
+  xhr.onerror=function(){
+    alert('Errore. Riprova.');
+    btn.disabled=false;btn.textContent='Salva aggiornamento';
+  };
+  xhr.send(JSON.stringify(entry));
+}
+
+function switchTab(name){
+  ['dashboard','update','pace','history'].forEach(function(t,i){
+    document.querySelectorAll('.tab')[i].classList.toggle('active',t===name);
+    document.getElementById('tab-'+t).classList.toggle('active',t===name);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
